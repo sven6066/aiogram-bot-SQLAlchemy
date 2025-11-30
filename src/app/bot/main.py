@@ -3,10 +3,14 @@ import logging
 from aiogram import Bot, Dispatcher
 from dishka import make_async_container
 from dishka.integrations.aiogram import setup_dishka
+from dishka import FromDishka
 
 from src.app.bot.handlers.start import router as start_router
+from src.app.bot.middlewares.auth import AuthMiddleware
 from src.app.core.ioc import DbProvider
 import os
+
+from src.app.database.repo import UserRepo
 
 
 async def main():
@@ -15,6 +19,8 @@ async def main():
     # 1. Инициализация бота
     bot = Bot(token=os.getenv("BOT_TOKEN"))
     dp = Dispatcher()
+
+
 
     # 2. Регистрируем роутеры
     dp.include_router(start_router)
@@ -25,6 +31,8 @@ async def main():
 
     # Интегрируем контейнер в Aiogram (магия setup_dishka)
     setup_dishka(container=container, router=dp, auto_inject=True)
+
+    dp.update.outer_middleware(AuthMiddleware())
 
     try:
         print("Бот запущен...")

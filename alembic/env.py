@@ -21,8 +21,7 @@ load_dotenv()
 config = context.config
 
 db_url = "postgresql+asyncpg://postgres:mypassword@localhost:5432/bot_db"
-# print(f"DEBUG: DATABASE_URL from env is: {db_url}")
-# exit()
+
 config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.

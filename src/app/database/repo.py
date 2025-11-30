@@ -24,3 +24,14 @@ class UserRepo:
         await self.session.commit()
         await self.session.refresh(new_user)  # Обновляем объект (получаем его ID)
         return new_user
+
+    async def __get_users_id(self):
+        stmt = select(User)
+        result = await self.session.execute(stmt)
+        return result.scalar_one().telegram_id
+
+    async def get_whitelist(self):
+        stmt = select(User.telegram_id)
+        result = await self.session.execute(stmt)
+        # return result.scalar_one().telegram_id
+        return set(result.scalars().all())

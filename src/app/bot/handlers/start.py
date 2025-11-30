@@ -10,7 +10,7 @@ router = Router()
 @router.message(CommandStart())
 async def cmd_start(
     message: Message,
-    user_repo: FromDishka[UserRepo]  # <--- ВАУ-ЭФФЕКТ: Внедрение зависимости
+    user_repo: FromDishka[UserRepo]
 ):
     # Добавляем пользователя в базу через репозиторий
     user = await user_repo.add_user(
