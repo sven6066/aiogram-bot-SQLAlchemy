@@ -7,7 +7,6 @@ from dishka.integrations.aiogram import CONTAINER_NAME
 
 from src.app.database.repo import UserRepo
 
-
 class AuthMiddleware(BaseMiddleware):
 
     # def __init__(self,
@@ -32,9 +31,11 @@ class AuthMiddleware(BaseMiddleware):
         print(white_list)
 
         if not user or user.id not in white_list:
-            bot = data.get("bot")
-            if bot and hasattr(event, "from_user"):
-                await bot.send_message(event.from_user.id, f"Доступ запрещён ваш id: {event.from_user.id}")
+            user_id = user.id if user else "неопознанный"
+            if event.message:
+                await event.message.answer(f"Доступ запрещён. Ваш ID: {user_id}")
+            elif event.callback_query:
+                event.callback_query.answer(f"Доступ запрещён. Ваш ID: {user_id}")
             return
 
         return await handler(event, data)

@@ -1,10 +1,16 @@
 from typing import AsyncIterable
+
+from aiogram.fsm import storage
+from aiogram.fsm.storage.redis import RedisStorage
 from dishka import Provider, Scope, provide
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker, AsyncSession
 from src.app.database.repo import UserRepo
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+REDIS_URL = os.getenv("REDIS_URL")
+
 
 # Наш провайдер зависимостей
 class DbProvider(Provider):
@@ -33,3 +39,18 @@ class DbProvider(Provider):
     @provide(scope=Scope.REQUEST)
     async def get_user_repo(self, session: AsyncSession) -> UserRepo:
         return UserRepo(session)
+
+
+class RedisProvider(Provider):
+
+    @provide(scope=Scope.APP)
+    async def create_redis_connection(self) -> AsyncIterable[Redis]:
+        url = REDIS_URL
+        redis = Redis.from_url(url)
+        yield redis
+        await redis.close()
+
+    @provide(scope=Scope.APP)
+    async def get_storage(self, redis: Redis) -> RedisStorage:
+        storage = RedisStorage(redis)
+        return storage
