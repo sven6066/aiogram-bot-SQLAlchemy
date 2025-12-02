@@ -41,6 +41,9 @@ class DbProvider(Provider):
         return UserRepo(session)
 
 
+from aiogram.fsm.storage.base import DefaultKeyBuilder
+
+
 class RedisProvider(Provider):
 
     @provide(scope=Scope.APP)
@@ -52,5 +55,8 @@ class RedisProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_storage(self, redis: Redis) -> RedisStorage:
-        storage = RedisStorage(redis)
+        storage = RedisStorage(
+            redis,
+            key_builder=DefaultKeyBuilder(with_destiny=True)
+        )
         return storage
