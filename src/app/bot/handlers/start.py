@@ -23,7 +23,7 @@ async def start(message: Message):
 
 @router.message(F.text == "Создать ТС 🚗")
 async def start_dialog_add_car(message: Message, dialog_manager: DialogManager):
-    await dialog_manager.start(AddCar.choice_server, mode=StartMode.RESET_STACK)
+    await dialog_manager.start(AddCar.select_server, mode=StartMode.RESET_STACK)
 
 
 # @router.message(CommandStart())
