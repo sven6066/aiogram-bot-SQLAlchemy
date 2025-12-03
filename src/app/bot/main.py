@@ -16,6 +16,8 @@ import os
 
 from src.app.database.repo import UserRepo
 
+import pydevd_pycharm
+pydevd_pycharm.settrace('host.docker.internal', port=5678, stdout_to_server=True, stderr_to_server=True)
 
 async def main():
     logging.basicConfig(level=logging.INFO)
