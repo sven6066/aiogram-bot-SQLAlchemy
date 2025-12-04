@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.app.database.models import User
+from src.app.database.models import User, Server
 
 
 class UserRepo:
@@ -35,3 +35,16 @@ class UserRepo:
         result = await self.session.execute(stmt)
         # return result.scalar_one().telegram_id
         return set(result.scalars().all())
+
+
+class ServerRepo:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_servers(self) -> list[Server]:
+        stmt = select(Server).order_by(Server.id)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_server(self, server_id: int) -> Server | None:
+        return await self.session.get(Server, server_id)

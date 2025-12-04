@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime, func, BigInteger
+from sqlalchemy import DateTime, func, BigInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.app.database.base import Base
@@ -15,3 +15,11 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now()
     )
+
+class Server(Base):
+    __tablename__ = 'servers'
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    admin_url: Mapped[str] = mapped_column(String, nullable=False)
+    user_url: Mapped[str] = mapped_column(String, nullable=False)

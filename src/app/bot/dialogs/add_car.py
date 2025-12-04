@@ -1,16 +1,19 @@
 import operator
 from typing import Any
+from dishka import FromDishka, AsyncContainer
 
 from aiogram.fsm.context import FSMContext
 from aiogram_dialog import Dialog, DialogManager
-
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import Window
 from aiogram_dialog.widgets.input import TextInput, MessageInput, ManagedTextInput
 from aiogram_dialog.widgets.kbd import Next, Back, Button, Select, Column, Row, SwitchTo, Group
 from aiogram_dialog.widgets.text import Const, Format
-from alembic.ddl.base import AddColumn
+from dishka.integrations.aiogram import CONTAINER_NAME
+
+from src.app.database.repo import ServerRepo
+from src.app.services.services import fetch_contracts_by_id
 
 
 class AddCar(StatesGroup):
@@ -22,19 +25,24 @@ class AddCar(StatesGroup):
     input_gos_number = State()
 
 
-# todo хранить сервера в таблице бд
-async def _get_server(**kwargs):
-    servers = [
-        ("Воронеж Блейд", 1),
-        ("Москва Блейд", 2),
-        ("Москва Флойд", 3)
-    ]
+async def _get_server(dialog_manager:DialogManager, **kwargs):
+    container: AsyncContainer = dialog_manager.middleware_data[CONTAINER_NAME]
+    server_repo = await container.get(ServerRepo)
+    servers = await server_repo.get_servers()
     return {
-        "servers": servers,
-        # "count": len(servers)
+        "servers": [(server.name, server.id) for server in servers],
     }
 
 async def _get_state_data(dialog_manager: DialogManager, **kwargs):
+    container: AsyncContainer = dialog_manager.middleware_data[CONTAINER_NAME]
+    server_repo = await container.get(ServerRepo)
+
+    server_id = dialog_manager.dialog_data.get("server_id")
+    if server_id:
+        server = await server_repo.get_server(server_id)
+        if server:
+            dialog_manager.dialog_data["server_name"] = server.name
+
     return {
         "server_name": dialog_manager.dialog_data.get("server_name", None),
         "error_msg": dialog_manager.dialog_data.get("error_msg", None),
@@ -44,16 +52,11 @@ async def _clear_error_data(callback:CallbackQuery, button:Button, manager: Dial
     manager.dialog_data.pop("error_msg", None)
 
 async def _on_server_selected(callback: CallbackQuery, widget: Any,
-                              manager: DialogManager, item_id: str):
-    context = manager.current_context()
-    context.dialog_data["server_id"] = int(item_id)
-    raw_servers = await _get_server()
-    server_name = "Unknown"
-    for name, s_id in raw_servers.get("servers"):
-        if s_id == int(item_id):
-            server_name = name
-            break
-    context.dialog_data["server_name"] = server_name
+                              manager: DialogManager, item_id: str, ):
+    server_id = int(item_id)
+    manager.dialog_data["server_id"] = server_id
+    # Очищаем старое имя сервера на случай, если пользователь вернулся назад и выбрал другой
+    manager.dialog_data.pop("server_name", None)
     await manager.next()
 
 select_server = Window(
@@ -95,18 +98,27 @@ select_method_contract = Window(
 def _contract_id_validator(text: str):
     if not text.isdigit():
         raise ValueError("ID должен состоять только из цифр")
-
-    if text != text:  # todo поиск номера среди списка договоров
-        raise ValueError("Договор не найден")
     return text
 
 async def _on_id_error(message: Message, widget: ManagedTextInput, manager: DialogManager, error_: ValueError):
     manager.dialog_data["error_msg"] = f"Ошибка {error_}"
 
 async def _on_id_success(message: Message, widget: ManagedTextInput, manager: DialogManager, data: str):
-    manager.dialog_data.pop("error_msg", None)
-    manager.dialog_data["contract_id"] = data
-    await message.answer(f"Вы ввели {data}")  # todo временно вывод ид договора
+    container: AsyncContainer = manager.middleware_data[CONTAINER_NAME]
+    server_repo = await container.get(ServerRepo)
+
+    contract_id = data
+    server_id = manager.dialog_data.get("server_id")
+    contract = await fetch_contracts_by_id(server_id, contract_id, server_repo) #todo ВАЖНО создать нужно убрать передачу объекта подключения к бд, и создавать её самим
+    if contract:
+        manager.dialog_data["contract_id"] = contract_id
+        manager.dialog_data["contract_name"] = contract.get("org_name")
+        manager.dialog_data.pop("error_msg", None)
+        await message.answer(f"Найден договор: {contract.get('org_name')}") # todo временно вывод ид договора
+    else:
+        manager.dialog_data["error_msg"] = f"Договор с ID {contract_id} не найден."
+    # manager.dialog_data["contract_id"] = data
+    # await message.answer(f"Вы ввели {data}")
     # await manager.switch_to(AddCar.input_gos_number)
 
 

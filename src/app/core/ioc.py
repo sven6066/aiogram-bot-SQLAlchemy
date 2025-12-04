@@ -5,7 +5,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from dishka import Provider, Scope, provide
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker, AsyncSession
-from src.app.database.repo import UserRepo
+from src.app.database.repo import UserRepo, ServerRepo
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -39,6 +39,10 @@ class DbProvider(Provider):
     @provide(scope=Scope.REQUEST)
     async def get_user_repo(self, session: AsyncSession) -> UserRepo:
         return UserRepo(session)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_server_repo(self, session: AsyncSession) -> ServerRepo:
+        return ServerRepo(session)
 
 
 from aiogram.fsm.storage.base import DefaultKeyBuilder
